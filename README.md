@@ -2,4 +2,4 @@
 
 **Authors:**
 
-- wiliam ...
+Om Badagi - Carlos Becerril
