@@ -12,6 +12,11 @@ launch:
     pkg: "uvlarm-gally"
     exec: "move.py"
     name: "randommove"
+
+- node:
+    pkg: "uvlarm-gally"
+    exec: "scan_echo.py"
+    name: "laserscan"
     
 - node:
     pkg: "uvlarm-gally"
