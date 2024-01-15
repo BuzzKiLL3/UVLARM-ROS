@@ -1,0 +1,22 @@
+launch:
+
+- include:
+    file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
+
+- node:
+    pkg: "rviz2"
+    exec: "rviz2"
+    name: "rviz2"
+    
+- node:
+    pkg: "uvlarm-gally"
+    exec: "move.py"
+    name: "randommove"
+    
+- node:
+    pkg: "uvlarm-gally"
+    exec: "tuto_vision.py"
+    name: "vision"
+
+- executable:
+    cmd: gnome-terminal --tab -e 'ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=/multi/cmd_teleop'

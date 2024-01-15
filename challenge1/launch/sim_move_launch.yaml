@@ -1,0 +1,27 @@
+launch:
+
+- include:
+    file: "$(find-pkg-share uvlarm-gally)/launch/challenge.launch.py"
+
+- node:
+    pkg: "uvlarm-gally"
+    exec: "move_tbot.py"
+    name: "my_move_strat"
+
+- node:
+    pkg: "uvlarm-gally"
+    exec: "scan_echo.py"
+    name: "my_scan"
+
+- node:
+    pkg: "rviz2"
+    exec: "rviz2"
+    name: "rviz2"
+
+- node:
+    pkg: "gazebo"
+    exec: "gazebo.launch.py"
+    name: "gazebo"
+
+- executable:
+    cmd: gnome-terminal --tab -e 'ros2 run  teleop_twist_keyboard teleop_twist_keyboard'
