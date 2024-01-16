@@ -1,4 +1,4 @@
-# uvlarm-Gally-Om-Carlos
+# uvlarm-gally
 
 **Authors:**
 
