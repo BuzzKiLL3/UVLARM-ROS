@@ -1,7 +1,10 @@
 launch:
 
+# - include:
+#     file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
+
 - include:
-    file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
+    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
 
 - node:
     pkg: "rviz2"
@@ -10,18 +13,18 @@ launch:
     
 - node:
     pkg: "uvlarm-gally"
-    exec: "move.py"
-    name: "randommove"
+    exec: "move2.py"
+    name: "ranmove"
 
 - node:
     pkg: "uvlarm-gally"
     exec: "scan_echo.py"
     name: "laserscan"
     
-- node:
-    pkg: "uvlarm-gally"
-    exec: "tuto_vision.py"
-    name: "vision"
+# - node:
+#     pkg: "uvlarm-gally"
+#     exec: "tuto_vision.py"
+#     name: "vision"
 
 - executable:
     cmd: gnome-terminal --tab -e 'ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=/multi/cmd_teleop'
