@@ -2,42 +2,61 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan, Point32
+from sensor_msgs.msg import LaserScan, PointCloud2
+from std_msgs.msg import Header
+import sensor_msgs_py.point_cloud2 as pc2
 import math
 
 class ScanInterpreterNode(Node):
     def __init__(self):
         super().__init__('scan_interpreter')
-        self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
 
-    def scan_callback(self, scanMsg):
-        obstacles = []
-        angle = scanMsg.angle_min
+        self.scan_publisher = self.create_publisher(LaserScan, 'scan', 10)
+        self.pointcloud_publisher = self.create_publisher(PointCloud2, 'pointcloud', 10)
 
-        for aDistance in scanMsg.ranges:
-            if 0.1 < aDistance and aDistance < 5.0:
-                aPoint = [
-                    math.cos(angle) * aDistance,
-                    math.sin(angle) * aDistance
-                ]
-                obstacles.append(aPoint)
-            angle += scanMsg.angle_increment
+    def scan_callback(self, scan_msg):
+        self.get_logger().info(f"Received LaserScan:\n{scan_msg}")
 
-        sample = [[round(p[0], 2), round(p[1], 2)] for p in obstacles[10:20]]
-        self.get_logger().info(f"obs({len(obstacles)}) ...{sample}...")
+        # Publish LaserScan data
+        self.scan_publisher.publish(scan_msg)
 
-        # Assuming you want to publish Point32 messages for each obstacle
-        for obstacle_point in obstacles:
-            point_msg = Point32()
-            point_msg.x = float(obstacle_point[0])
-            point_msg.y = float(obstacle_point[1])
-            point_msg.z = float(0)
-            # Publish the Point32 message here
+        # Convert LaserScan to PointCloud2
+        pointcloud_msg = self.convert_scan_to_pointcloud2(scan_msg)
+        self.pointcloud_publisher.publish(pointcloud_msg)
+
+    def convert_scan_to_pointcloud2(self, scan_msg):
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = scan_msg.header.frame_id
+
+        points = []
+        angle = scan_msg.angle_min
+        for r in scan_msg.ranges:
+            if not math.isinf(r) and not math.isnan(r):
+                x = r * math.cos(angle)
+                y = r * math.sin(angle)
+                z = 0.0  # Assuming a planar surface
+
+                point = [x, y, z]
+                points.append(point)
+
+            angle += scan_msg.angle_increment
+
+        fields = pc2.create_cloud_xyz32().fields
+        pointcloud_msg = pc2.create_cloud_xyz32(header, fields, points)
+
+        return pointcloud_msg
 
 def main():
     rclpy.init()
-    node = ScanInterpreterNode()
-    rclpy.spin(node)
+    scan_interpreter_node = ScanInterpreterNode()
+
+    # Subscribe to LaserScan and publish PointCloud2
+    scan_interpreter_node.create_subscription(LaserScan, 'scan', scan_interpreter_node.scan_callback, 10)
+
+    rclpy.spin(scan_interpreter_node)
+
+    scan_interpreter_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
