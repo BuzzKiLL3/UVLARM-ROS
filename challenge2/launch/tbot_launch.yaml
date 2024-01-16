@@ -1,0 +1,14 @@
+launch:
+
+- include:
+    file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
+   
+- node:
+    pkg: "challenge2"
+    exec: "move.py"
+    name: "randommove"
+
+- node:
+    pkg: "challenge2"
+    exec: "scan_echo.py"
+    name: "laserscan"
