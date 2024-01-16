@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import cv2 as cv
 import numpy as np
 import pyrealsense2 as rs
@@ -28,7 +30,7 @@ w, h = template.shape[::-1]
 threshold_template = 0.3
 
 # Segmentation parameters using HSV color space
-color = 68
+color = 60
 lo = np.array([color - 15, 50, 50])
 hi = np.array([color + 6, 255, 255])
 
