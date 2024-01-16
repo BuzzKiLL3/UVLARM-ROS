@@ -1,7 +1,7 @@
 launch:
 
 - include:
-    file: "$(find-pkg-share uvlarm-gally)/launch/challenge.launch.py"
+    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
 
 - node:
     pkg: "uvlarm-gally"
