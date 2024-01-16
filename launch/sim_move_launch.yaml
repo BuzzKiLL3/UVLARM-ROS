@@ -1,18 +1,19 @@
 launch:
 
-- include:
-    file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
+# - include:
+#     file: "$(find-pkg-share uvlarm-gally)/scripts/tuto_vision2.py"
 
-# - include:
-#     file: "$(find-pkg-share uvlarm-gally)/launch/visual_launch.yaml"
-# - include:
-#     file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
+- include:
+    file: "$(find-pkg-share uvlarm-gally)/launch/visual_launch.yaml"
+
+- include:
+    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
 
 # - node:
 #     pkg: "rviz2"
 #     exec: "rviz2"
 #     name: "rviz2"
-    
+
 - node:
     pkg: "uvlarm-gally"
     exec: "move2.py"

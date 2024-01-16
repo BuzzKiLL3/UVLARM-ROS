@@ -123,7 +123,7 @@ class ObjectDetectionNode(Node):
 
                     # Show images
                     cv.imshow('RealSense', images)
-                    cv.waitKey(1)
+                    cv.waitKey(7)
 
                     # Publish the image
                     img_msg = self.bridge.cv2_to_imgmsg(images, encoding="bgr8")

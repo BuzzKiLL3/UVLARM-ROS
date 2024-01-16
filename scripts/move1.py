@@ -6,28 +6,22 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 import sensor_msgs_py.point_cloud2 as pc2
 from std_msgs.msg import Header
+from slam_toolbox import Trajectory
+from nav_msgs.msg import Odometry
 import math
 
 rosNode = None
-
-def calculate_sensitivity_factor(distance):
-    # Define a function to calculate the sensitivity factor based on distance
-    # You can customize this function to meet your sensitivity needs
-    max_distance = 5.0  # Adjust this based on the maximum expected distance
-    sensitivity_factor = 3.0 - min(distance / max_distance, 1.0)
-    return sensitivity_factor
+slam_trajectory_pub = None
 
 def scan_callback(scanMsg):
-    global rosNode
+    global rosNode, slam_trajectory_pub
     angle = scanMsg.angle_min + math.pi / 2
-    obstacles_left = 0
-    obstacles_right = 0
     obstacles = []
     cmd_debug_points_left = []
     cmd_debug_points_right = []
 
     for aDistance in scanMsg.ranges:
-        if 0.1 < aDistance < 5.0:
+        if 0.15 < aDistance < 5.0:
             aPoint = [
                 math.cos(angle) * aDistance,
                 math.sin(angle) * aDistance,
@@ -35,46 +29,57 @@ def scan_callback(scanMsg):
             ]
             obstacles.append(aPoint)
             if (0.01 < aPoint[0] < 0.2 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3):
-                obstacles_right += 1
                 cmd_debug_points_right.append(aPoint)
             if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7) or (-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3):
-                obstacles_left += 1
                 cmd_debug_points_left.append(aPoint)
-        angle += scanMsg.angle_increment  # Adjust this increment for a smaller angle
+        angle += scanMsg.angle_increment
 
     velo = Twist()
 
-    sensitivity_factor = calculate_sensitivity_factor(scanMsg.ranges[0])  # Using the first distance as a reference
-    
-    if obstacles_right > obstacles_left:
-        print("Go Left")
-        velo.angular.z = 0.3 * sensitivity_factor
-        velo.linear.x = 0.0
-    elif obstacles_left > obstacles_right:
-        print("Go Right")
-        velo.angular.z = -0.3 * sensitivity_factor
-        velo.linear.x = 0.0
+    left_distance = sum(p[0] for p in cmd_debug_points_left) / len(cmd_debug_points_left) if cmd_debug_points_left else 0.0
+    right_distance = sum(p[0] for p in cmd_debug_points_right) / len(cmd_debug_points_right) if cmd_debug_points_right else 0.0
+
+    if left_distance > right_distance:
+        print("Turn left, more space on the left")
+        velo.angular.z = 0.1
+    elif right_distance > left_distance:
+        print("Turn right, more space on the right")
+        velo.angular.z = -0.1
     else:
-        print("Go Forward")
-        velo.angular.z = 0.0
-        velo.linear.x = 0.3 * sensitivity_factor
+        print("Move straight, equal space on both sides")
+        velo.linear.x = 0.2
 
     velocity_publisher.publish(velo)
+
+    # Publish SLAM trajectory
+    trajectory_msg = Trajectory()
+    # Set the trajectory based on your robot's pose
+    # For simplicity, this example sets a trajectory with just one pose
+    pose = Odometry()
+    pose.header.stamp = rosNode.get_clock().now().to_msg()
+    pose.header.frame_id = 'base_link'  # Change the frame_id accordingly
+    pose.pose.pose.position.x = 0.0
+    pose.pose.pose.position.y = 0.0
+    pose.pose.pose.position.z = 0.0
+    pose.pose.pose.orientation.w = 1.0
+    trajectory_msg.poses.append(pose.pose.pose)
+    slam_trajectory_pub.publish(trajectory_msg)
+
+    # Publish point cloud
     cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
     cloud_publisher.publish(cloudPoints)
+
 
 if __name__ == '__main__':
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
-    velocity_publisher = rosNode.create_publisher(Twist, '/cmd_vel', 10)
+    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
     cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
-    
-    # Adjust the angle increment for a smaller angle
-    scan_subscription = rosNode.create_subscription(LaserScan, 'scan', scan_callback, 10)
-    scan_subscription.set_parameters([rclpy.parameter.Parameter('use_sim_time', rclpy.Parameter.Type.BOOL, True)])
+    slam_trajectory_pub = rosNode.create_publisher(Trajectory, 'trajectory', 1)
+    rosNode.create_subscription(LaserScan, 'scan', scan_callback, 10)
 
-    while True:
+    while rclpy.ok():
         rclpy.spin_once(rosNode, timeout_sec=0.1)
     rosNode.destroy_node()
     rclpy.shutdown()

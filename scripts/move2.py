@@ -45,7 +45,7 @@ def scan_callback(scanMsg):
         velo.angular.z = -0.1
     else:
         print("Move straight, equal space on both sides")
-        velo.linear.x = 0.2
+        velo.linear.x = 2.2
 
     velocity_publisher.publish(velo)
     cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
-    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
+    velocity_publisher = rosNode.create_publisher(Twist, '/cmd_vel', 10)
     cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
     rosNode.create_subscription(LaserScan, 'scan', scan_callback, 10)
 
