@@ -1,8 +1,5 @@
 launch:
 
-- include:
-    file: "$(find-pkg-share nav2_bringup)/launch/navigation_launch.py"
-
 - node:
     pkg: "rviz2"
     exec: "rviz2"

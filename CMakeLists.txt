@@ -34,9 +34,8 @@ install(DIRECTORY launch
 )
 
 # Python scripts
-install( PROGRAMS scripts/move2.py DESTINATION lib/${PROJECT_NAME})
+install( PROGRAMS scripts/move.py DESTINATION lib/${PROJECT_NAME})
 install( PROGRAMS scripts/tuto_vision2.py DESTINATION lib/${PROJECT_NAME})
-install( PROGRAMS scripts/move_tbot.py DESTINATION lib/${PROJECT_NAME})
-install( PROGRAMS scripts/scan_echo.py DESTINATION lib/${PROJECT_NAME})
+install( PROGRAMS scripts/scan_echo1.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

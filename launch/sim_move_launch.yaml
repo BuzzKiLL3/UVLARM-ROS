@@ -7,21 +7,24 @@ launch:
     file: "$(find-pkg-share uvlarm-gally)/launch/visual_launch.yaml"
 
 - include:
-    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
+    file: "$(find-pkg-share tbot_node)/launch/minimal_launch.yaml"
 
-# - node:
-#     pkg: "rviz2"
-#     exec: "rviz2"
-#     name: "rviz2"
+#- include:
+#    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
+
+- node:
+    pkg: "rviz2"
+    exec: "rviz2"
+    name: "rviz2"
 
 - node:
     pkg: "uvlarm-gally"
-    exec: "move2.py"
+    exec: "move.py"
     name: "ranmove"
 
 - node:
     pkg: "uvlarm-gally"
-    exec: "scan_echo.py"
+    exec: "scan_echo1.py"
     name: "laserscan"
     
 - node:

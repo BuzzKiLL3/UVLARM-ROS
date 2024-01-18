@@ -73,7 +73,7 @@ if __name__ == '__main__':
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
-    velocity_publisher = rosNode.create_publisher(Twist, '/cmd_vel', 10)
+    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav' , 10)
     cloud_publisher = rosNode.create_publisher(pc2.PointCloud2,'laser_link',10)
     rosNode.create_subscription( LaserScan, 'scan', scan_callback, 10)
     
