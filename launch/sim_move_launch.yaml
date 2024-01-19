@@ -12,10 +12,10 @@ launch:
 #- include:
 #    file: "$(find-pkg-share uvlarm-gally)/launch/challenge-1.launch.py"
 
-- node:
-    pkg: "rviz2"
-    exec: "rviz2"
-    name: "rviz2"
+# - node:
+#     pkg: "rviz2"
+#     exec: "rviz2"
+#     name: "rviz2"
 
 - node:
     pkg: "uvlarm-gally"

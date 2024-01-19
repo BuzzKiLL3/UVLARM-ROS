@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped, Point
 from visualization_msgs.msg import Marker
@@ -29,7 +29,7 @@ class ObjectDetectionNode(Node):
         self.config = rs.config()
         self.colorizer = rs.colorizer()
 
-        # FPS set to 15 (reduced for demo purposes)
+        # FPS set to 30
         self.config.enable_stream(rs.stream.depth, 440, 280, rs.format.z16, 15)
         self.config.enable_stream(rs.stream.color, 440, 280, rs.format.bgr8, 15)
         self.config.enable_stream(rs.stream.infrared, 1, 848, 480, rs.format.y8, 30)
@@ -48,49 +48,6 @@ class ObjectDetectionNode(Node):
         self.templates = {file: cv.imread(file, 0) for file in self.TEMPLATE_FILES}
         self.bridge = CvBridge()
         self.camera_info = None
-
-        # Image publisher for raw color image
-        self.raw_image_pub = self.create_publisher(Image, 'raw_color_image', 10)
-        # Pose publisher
-        self.pose_pub = self.create_publisher(PoseStamped, 'object_pose', 10)
-        # Marker publisher
-        self.marker_pub = self.create_publisher(Marker, 'object_marker', 10)
-        # Path publisher
-        self.path_pub = self.create_publisher(Path, 'robot_path', 10)
-        self.robot_path = Path()
-        self.visited_locations = set()
-
-        # Camera info subscriber
-        self.camera_info_sub = self.create_subscription(
-            CameraInfo, 'camera_info', self.camera_info_callback, 10)
-
-        # Image publisher for RViz2
-        self.image_publisher = self.create_publisher(Image, 'image', 10)
-        # Image publishers for infrared images
-        self.infra_publisher_1 = self.create_publisher(Image, 'infrared_1', 10)
-        self.infra_publisher_2 = self.create_publisher(Image, 'infrared_2', 10)
-
-        # Initialize CV Bridge
-        self.bridge = CvBridge()
-        self.camera_info = None
-
-    def camera_info_callback(self, msg):
-        self.camera_info = msg
-
-    def convert_pixel_to_meter(self, pixel_x, pixel_y, depth):
-        if self.camera_info is None:
-            return None, None, None
-
-        fx = self.camera_info.K[0]
-        fy = self.camera_info.K[4]
-        cx = self.camera_info.K[2]
-        cy = self.camera_info.K[5]
-
-        x = (pixel_x - cx) * depth / fx
-        y = (pixel_y - cy) * depth / fy
-
-        return x, y, depth
-
     def run(self):
         try:
             while rclpy.ok():
@@ -109,7 +66,6 @@ class ObjectDetectionNode(Node):
 
                 color_intrin = aligned_color_frame.profile.as_video_stream_profile().intrinsics
                 color_image = np.asanyarray(aligned_color_frame.get_data())
-
                 # Publish raw color image to 'raw_color_image' topic
                 raw_color_image_msg = self.bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
                 self.raw_image_pub.publish(raw_color_image_msg)
@@ -181,7 +137,7 @@ class ObjectDetectionNode(Node):
                                 marker_msg = Marker()
                                 marker_msg.header = pose_msg.header
                                 marker_msg.ns = "object_marker"
-                                marker_msg.id = len(self.robot_path.poses)  # Different ID for each detection
+                                marker_msg.id = 0
                                 marker_msg.type = Marker.SPHERE
                                 marker_msg.action = Marker.ADD
                                 marker_msg.pose = pose_msg.pose
@@ -189,9 +145,9 @@ class ObjectDetectionNode(Node):
                                 marker_msg.scale.y = 0.1
                                 marker_msg.scale.z = 0.1
                                 marker_msg.color.a = 1.0
-                                marker_msg.color.r = 0.0
+                                marker_msg.color.r = 1.0
                                 marker_msg.color.g = 0.0
-                                marker_msg.color.b = 1.0  # Blue color
+                                marker_msg.color.b = 0.0
 
                                 self.marker_pub.publish(marker_msg)
 
@@ -200,8 +156,6 @@ class ObjectDetectionNode(Node):
                                 self.path_pub.publish(self.robot_path)
 
                                 self.visited_locations.add((x_base, y_base, z_base))
-                                # Reset the flag after publishing the marker
-                                self.object_detected = False
 
                     else:
                         self.get_logger().info("Object not detected.")
