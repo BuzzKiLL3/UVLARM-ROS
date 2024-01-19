@@ -5,7 +5,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped, Point
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 from nav_msgs.msg import Path  # Import Path message
 import numpy as np
 import pyrealsense2 as rs
@@ -55,7 +55,7 @@ class ObjectDetectionNode(Node):
         # Pose publisher
         self.pose_pub = self.create_publisher(PoseStamped, 'object_pose', 10)
         # Marker publisher
-        self.marker_pub = self.create_publisher(Marker, 'object_marker', 10)
+        self.marker_pub = self.create_publisher(MarkerArray, 'object_marker', 10)
         # Path publisher
         self.path_pub = self.create_publisher(Path, 'robot_path', 10)
         self.robot_path = Path()
@@ -164,12 +164,12 @@ class ObjectDetectionNode(Node):
                                 self.pose_pub.publish(pose_msg)
 
                                 # Publish a Marker message for visualization in RViz2
-                                marker_msg = Marker()
+                                marker_msg = MarkerArray()
                                 marker_msg.header = pose_msg.header
                                 marker_msg.ns = "object_marker"
                                 marker_msg.id = 0
-                                marker_msg.type = Marker.SPHERE
-                                marker_msg.action = Marker.ADD
+                                marker_msg.type = MarkerArray.SPHERE
+                                marker_msg.action = MarkerArray.ADD
                                 marker_msg.pose = pose_msg.pose
                                 marker_msg.scale.x = 0.1  # Adjust as needed
                                 marker_msg.scale.y = 0.1
