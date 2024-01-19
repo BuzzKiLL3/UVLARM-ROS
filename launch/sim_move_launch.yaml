@@ -26,11 +26,5 @@ launch:
     pkg: "uvlarm-gally"
     exec: "scan_echo1.py"
     name: "laserscan"
-    
-- node:
-    pkg: "uvlarm-gally"
-    exec: "tuto_vision2.py"
-    name: "vision"
-
 - executable:
     cmd: gnome-terminal --tab -e 'ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=/multi/cmd_teleop'

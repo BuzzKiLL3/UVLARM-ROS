@@ -7,8 +7,12 @@ launch:
 
 - node:
     pkg: "uvlarm-gally"
-    exec: "scan_echo.py"
+    exec: "scan_echo1.py"
     name: "laserscan"
+- node:
+    pkg: "uvlarm-gally"
+    exec: "tuto_vision4.py"
+    name: "vision"
 
 # - node:
 #     pkg: "slam_toolbox"

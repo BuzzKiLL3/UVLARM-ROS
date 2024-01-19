@@ -22,7 +22,7 @@ def scan_callback(scanMsg):
     cmd_debug_points_right = []
 
     for aDistance in scanMsg.ranges:
-        if 0.1 < aDistance < 5.0:
+        if 0.1 < aDistance < 3.0:
             aPoint = [
                 math.cos(angle) * aDistance,
                 math.sin(angle) * aDistance,
@@ -43,12 +43,12 @@ def scan_callback(scanMsg):
         
     if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
         print("go Left")
-        velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.013 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.06 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.013 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.linear.x = 0.0
     
     elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
         print("go right")
-        velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.013 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.06 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.013 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.linear.x = 0.0
 
     else:
