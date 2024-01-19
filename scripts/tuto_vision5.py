@@ -65,6 +65,9 @@ class ObjectDetectionNode(Node):
         self.camera_info_sub = self.create_subscription(
             CameraInfo, 'camera_info', self.camera_info_callback, 10)
 
+        # Image publisher for RViz2
+        self.image_publisher = self.create_publisher(Image, 'image', 10)
+
         # Initialize CV Bridge
         self.bridge = CvBridge()
         self.camera_info = None
@@ -108,6 +111,12 @@ class ObjectDetectionNode(Node):
                 # Publish raw color image to 'raw_color_image' topic
                 raw_color_image_msg = self.bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
                 self.raw_image_pub.publish(raw_color_image_msg)
+
+                # Publish color image to 'image' topic for RViz2 visualization
+                msg_image = self.bridge.cv2_to_imgmsg(color_image, "bgr8")
+                msg_image.header.stamp = self.get_clock().now().to_msg()
+                msg_image.header.frame_id = "image"
+                self.image_publisher.publish(msg_image)
 
                 depth_colormap_dim = depth_colormap.shape
                 color_colormap_dim = color_image.shape
