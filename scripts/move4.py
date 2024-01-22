@@ -13,24 +13,33 @@ from kobuki_ros_interfaces.msg import WheelDropEvent
 class ScanCallback(Node):
     def __init__(self):
         super().__init__('scan_callback_node')
-        
+
         self.obstacles_left = False
         self.obstacles_right = False
-        self.velocity_publisher = None
-        self.cloud_publisher = None
         self.leftWheelDropped = False
         self.rightWheelDropped = False
         self.stopped = True
-        self.cmd_vel_publisher = self.create_publisher(Twist, '/multi/cmd_nav', 10)
+
+        self.cmd_vel_publisher = None
+        self.cloud_publisher = None
+
         self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
         self.create_subscription(WheelDropEvent, 'event/wheel_drop', self.wheel_callback, 50)
+
         self.cmd_vel_msg = Twist()
+
+        # Initialize publishers if they don't exist
+        if not self.cmd_vel_publisher:
+            self.cmd_vel_publisher = self.create_publisher(Twist, '/multi/cmd_nav', 10)
+
+        if not self.cloud_publisher:
+            self.cloud_publisher = self.create_publisher(pc2.PointCloud2, 'laser_link', 10)
 
     def wheel_callback(self, wheel_msg):
         # Check if either wheel is dropped
         if wheel_msg.state == WheelDropEvent.WHEEL_DROPPED:
-            self.leftWheelDropped = True if wheel_msg.wheel == WheelDropEvent.WHEEL_LEFT else False
-            self.rightWheelDropped = True if wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT else False
+            self.leftWheelDropped = wheel_msg.wheel == WheelDropEvent.WHEEL_LEFT
+            self.rightWheelDropped = wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT
 
     def scan_callback(self, scan_msg):
         angle = scan_msg.angle_min + math.pi/2
@@ -40,14 +49,14 @@ class ScanCallback(Node):
 
         # Check if either wheel is dropped
         if self.leftWheelDropped or self.rightWheelDropped:
-            velo = Twist()
-            velo.linear.x = 0.0
-            velo.angular.z = 0.0
-            self.cmd_vel_publisher.publish(velo)
+            # Handle the case when wheels are dropped
+            self.cmd_vel_msg.linear.x = 0.0
+            self.cmd_vel_msg.angular.z = 0.0
+            self.cmd_vel_publisher.publish(self.cmd_vel_msg)
             return
 
-        # Add print statements for debugging
-        print("Laser Scan Callback Triggered")
+        # Add logging statements for debugging
+        self.get_logger().info("Laser Scan Callback Triggered")
 
         for aDistance in scan_msg.ranges:
             if 0.1 < aDistance < 3.0:
@@ -65,48 +74,52 @@ class ScanCallback(Node):
                     cmd_debug_points_left.append(aPoint)
             angle += scan_msg.angle_increment
 
-        velo = Twist()
+        self.cmd_vel_msg = Twist()
 
         if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
-            print("go Left")
-            velo.angular.z = 0.03 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-            velo.linear.x = 0.0
+            self.get_logger().info("go Left")
+            self.cmd_vel_msg.angular.z = 0.03 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+            self.cmd_vel_msg.linear.x = 0.0
     
         elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
-            print("go right")
-            velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-            velo.linear.x = 0.0
+            self.get_logger().info("go right")
+            self.cmd_vel_msg.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+            self.cmd_vel_msg.linear.x = 0.0
 
         else:
             speed = 0.3 - 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left))
             if speed < 0:
                 speed = 0.0
-            velo.linear.x = speed
-            velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+            self.cmd_vel_msg.linear.x = speed
+            self.cmd_vel_msg.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
 
-        print("Linear Velocity:", velo.linear.x)
-        print("Angular Velocity:", velo.angular.z)
+        self.get_logger().info("Linear Velocity: %s", self.cmd_vel_msg.linear.x)
+        self.get_logger().info("Angular Velocity: %s", self.cmd_vel_msg.angular.z)
 
-        self.cmd_vel_publisher.publish(velo)
+        self.cmd_vel_publisher.publish(self.cmd_vel_msg)
         cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
         self.cloud_publisher.publish(cloudPoints)
 
 
-if __name__ == '__main__':
+def main():
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
     scan_callback_node = ScanCallback()
-    scan_callback_node.velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
-    scan_callback_node.cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
-    
+
     try:
-        while rclpy.ok():
-            # Add a print statement for debugging
-            print("Spinning Once")
-            rclpy.spin_once(rosNode, timeout_sec=0.1)
+        rclpy.spin(scan_callback_node)
     except KeyboardInterrupt:
         pass
 
+<<<<<<< HEAD
     rosNode.destroy_node()
     rclpy.shutdown()
+=======
+    scan_callback_node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+>>>>>>> refs/remotes/origin/main
