@@ -19,6 +19,10 @@ class LiftDetectionNode(Node):
         # Check if right wheel is dropped
         self.right_wheel_dropped = wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT
 
+        # Debugging: Print received message details
+        self.get_logger().info("Received WheelDropEvent: %s, Left Dropped: %s, Right Dropped: %s",
+                               wheel_msg.wheel, self.left_wheel_dropped, self.right_wheel_dropped)
+
     def print_lift_status(self):
         if self.left_wheel_dropped and self.right_wheel_dropped:
             print("Robot is lifted!")
