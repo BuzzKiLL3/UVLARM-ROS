@@ -7,6 +7,7 @@ import math
 from rclpy import  init
 from rclpy import  Node
 from sensor_msgs.msg import Image
+
 from cv_bridge import CvBridge
 
 class ObjectDetectionNode(Node):
@@ -14,7 +15,7 @@ class ObjectDetectionNode(Node):
         super().__init__('object_detection_node')
         self.bridge = CvBridge()
         self.image_pub = self.create_publisher(Image, 'image', 10)
-        self.detection_pub = self.create_publisher(ObjectDetectionNode, 'object_detection', 10)
+        self.detection_pub = self.create_publisher(bool, 'object_detection', 10)
 
         # RealSense setup
         self.pipeline = rs.pipeline()
@@ -115,15 +116,15 @@ class ObjectDetectionNode(Node):
 
                     # Show images
                     cv.imshow('RealSense', images)
-                    cv.waitKey(1)
+                    cv.waitKey(0)
 
                     # Publish image
-                    image_msg = self.bridge.cv2_to_imgmsg(color_image, encoding='bgr8')
+                    image_msg = self.bridge.cv2_to_imgmsg(images, encoding='bgr8')
                     self.image_pub.publish(image_msg)
 
                     # Print object detection status in real-time
-                    detection_msg = ObjectDetectionNode()
-                    detection_msg.object_detected = self.object_detected
+                    detection_msg = bool()
+                    detection_msg = self.object_detected
                     self.detection_pub.publish(detection_msg)
 
                     if self.object_detected:

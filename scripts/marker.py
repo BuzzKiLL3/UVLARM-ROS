@@ -37,7 +37,7 @@ class ObjectDetectionNode(Node):
             face_pose.position.z = 0
 
             marker = Marker()
-            marker.header.frame_id = "camera_link"
+            marker.header.frame_id = "map"
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.pose = face_pose
