@@ -21,8 +21,8 @@ def scan_callback(scanMsg):
     for aDistance in scanMsg.ranges:
         if 0.1 < aDistance < 3.0:
             aPoint = [
-                math.cos(angle) * aDistance,
-                math.sin(angle) * aDistance,
+                aDistance * math.cos(angle),
+                aDistance * math.sin(angle),
                 0.0
             ]
             obstacles.append(aPoint)
@@ -36,26 +36,23 @@ def scan_callback(scanMsg):
 
     velo = Twist()
 
+    # Linear velocity adjustment
+    velo.linear.x = max(0.0, 0.3 - 0.1 * (3.0 - min(scanMsg.ranges)))
+
     if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
         print("go Left")
         velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.005 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-        velo.linear.x = 0.1  # Set to a small positive value for smooth turning
     
     elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
         print("go right")
         velo.angular.z = 0.005 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-        velo.linear.x = 0.1  # Set to a small positive value for smooth turning
 
     else:
-        speed = 0.3 - 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left))
-        if speed < 0:
-            speed = 0.0
-        velo.linear.x = speed
         target_angular_velocity = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.angular.z = 0.9 * velo.angular.z + 0.1 * target_angular_velocity
 
-    max_angular_velocity = 0.5  # Adjust as needed
-    velo.angular.z = max(-max_angular_velocity, min(max_angular_velocity, velo.angular.z))
+    min_angular_velocity = 0.1  # Adjust as needed
+    velo.angular.z = max(min_angular_velocity, velo.angular.z)
 
     print(velo.linear.x)
     print(velo.angular.z)
