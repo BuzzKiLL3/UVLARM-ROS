@@ -3,13 +3,10 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Twist
 import sensor_msgs_py.point_cloud2 as pc2
 from std_msgs.msg import Header
+from geometry_msgs.msg import Twist
 from kobuki_ros_interfaces.msg import WheelDropEvent
-import math 
-
-rosNode = None
 
 class ScanInterpreter(Node):
     def __init__(self):
@@ -25,17 +22,15 @@ class ScanInterpreter(Node):
         # cmd_vel if is simulation and /multi/cmd_nav if is tbot
         self.create_subscription(LaserScan, 'scan', self.scan_callback, 10)
         self.create_subscription(WheelDropEvent, 'event/wheel_drop', self.wheel_callback, 50)
-        # self.create_timer(0.05, self.control_callback, 10)
-        self.cmd_vel_msg = Twist()      
+        self.cmd_vel_msg = Twist()
 
     def wheel_callback(self, wheel_msg):
-        self.leftWheelDropped = wheel_msg.leftWheelDropped
-        self.rightWheelDropped = wheel_msg.rightWheelDropped
-        self.stopped = wheel_msg.stopped
+        # Your wheel callback logic here
+        pass
 
     def scan_callback(self, scan_msg):
         global rosNode
-        angle = scan_msg.angle_min + math.pi/2
+        angle = scan_msg.angle_min + math.pi / 2
         obstacles = []
         cmd_debug_points_left = []
         cmd_debug_points_right = []
@@ -58,35 +53,29 @@ class ScanInterpreter(Node):
 
         velo = Twist()
 
-        if self.leftWheelDropped or self.rightWheelDropped:
-            # Either wheel is dropped, stop the movement
+        if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
+            print("go Left")
+            velo.angular.z = 0.03 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (
+                    len(cmd_debug_points_right) - len(cmd_debug_points_left))
             velo.linear.x = 0.0
-            velo.angular.z = 0.0
-        elif self.stopped:
-            # Robot is stopped, stop the movement
+
+        elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
+            print("go right")
+            velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (
+                    len(cmd_debug_points_right) - len(cmd_debug_points_left))
             velo.linear.x = 0.0
-            velo.angular.z = 0.0
+
         else:
-            # Your movement logic here
-            if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
-                print("go Left")
-                velo.angular.z = 0.03 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-                velo.linear.x = 0.0
-            elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
-                print("go right")
-                velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
-                velo.linear.x = 0.0
-            else:
-                speed = 0.3 - 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left))
-                if speed < 0:
-                    speed = 0.0
-                velo.linear.x = speed
-                velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+            speed = 0.3 - 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left))
+            if speed < 0:
+                speed = 0.0
+            velo.linear.x = speed
+            velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
 
         print(velo.linear.x)
         print(velo.angular.z)
 
-        self.cmd_vel_publisher.publish(velo)
+        velocity_publisher.publish(velo)
         cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
         cloud_publisher.publish(cloudPoints)
 
