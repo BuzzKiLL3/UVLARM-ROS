@@ -10,6 +10,7 @@ class LiftDetectionNode(Node):
         self.left_wheel_dropped = False
         self.right_wheel_dropped = False
         self.create_subscription(WheelDropEvent, 'event/wheel_drop', self.wheel_callback, 10)
+        self.create_timer(1.0, self.print_lift_status)  # Print status every 1 second
 
     def wheel_callback(self, wheel_msg):
         # Check if left wheel is dropped
@@ -17,9 +18,6 @@ class LiftDetectionNode(Node):
 
         # Check if right wheel is dropped
         self.right_wheel_dropped = wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT
-
-        # Print the status
-        self.print_lift_status()
 
     def print_lift_status(self):
         if self.left_wheel_dropped and self.right_wheel_dropped:
