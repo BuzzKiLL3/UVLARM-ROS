@@ -30,7 +30,7 @@ w, h = template.shape[::-1]
 threshold_template = 0.3
 
 # Segmentation parameters using HSV color space
-color = 60
+color = 55
 lo = np.array([color - 15, 50, 50])
 hi = np.array([color + 6, 255, 255])
 
