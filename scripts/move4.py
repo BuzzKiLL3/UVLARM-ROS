@@ -6,22 +6,18 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 import sensor_msgs_py.point_cloud2 as pc2
 from std_msgs.msg import Header
+import math
 
 from kobuki_ros_interfaces.msg import WheelDropEvent
 
-rosNode = None
-obstacles_left = False
-obstacles_right = False
-velocity_publisher = None
-cloud_publisher = None
-
-class ScanInterpreter(Node):
+class ScanCallback(Node):
     def __init__(self):
-        super().__init__('scan_interpreter')
+        super().__init__('scan_callback_node')
         
-        self.obstacles = []
-        self.left_obs = []
-        self.right_obs = []
+        self.obstacles_left = False
+        self.obstacles_right = False
+        self.velocity_publisher = None
+        self.cloud_publisher = None
         self.leftWheelDropped = False
         self.rightWheelDropped = False
         self.stopped = True
@@ -37,7 +33,6 @@ class ScanInterpreter(Node):
             self.rightWheelDropped = True if wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT else False
 
     def scan_callback(self, scan_msg):
-        global obstacles_left, obstacles_right, velocity_publisher
         angle = scan_msg.angle_min + math.pi/2
         obstacles = []
         cmd_debug_points_left = []
@@ -48,8 +43,11 @@ class ScanInterpreter(Node):
             velo = Twist()
             velo.linear.x = 0.0
             velo.angular.z = 0.0
-            velocity_publisher.publish(velo)
+            self.cmd_vel_publisher.publish(velo)
             return
+
+        # Add print statements for debugging
+        print("Laser Scan Callback Triggered")
 
         for aDistance in scan_msg.ranges:
             if 0.1 < aDistance < 3.0:
@@ -60,10 +58,10 @@ class ScanInterpreter(Node):
                 ]
                 obstacles.append(aPoint)
                 if (0.01 < aPoint[0] < 0.2 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3):
-                    obstacles_right = True
+                    self.obstacles_right = True
                     cmd_debug_points_right.append(aPoint)
                 if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7) or (-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3):
-                    obstacles_left = True
+                    self.obstacles_left = True
                     cmd_debug_points_left.append(aPoint)
             angle += scan_msg.angle_increment
 
@@ -86,24 +84,26 @@ class ScanInterpreter(Node):
             velo.linear.x = speed
             velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
 
-        print(velo.linear.x)
-        print(velo.angular.z)
+        print("Linear Velocity:", velo.linear.x)
+        print("Angular Velocity:", velo.angular.z)
 
-        velocity_publisher.publish(velo)
+        self.cmd_vel_publisher.publish(velo)
         cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
-        cloud_publisher.publish(cloudPoints)
+        self.cloud_publisher.publish(cloudPoints)
 
 
 if __name__ == '__main__':
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
-    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
-    cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
-    scan_interpreter = ScanInterpreter()
+    scan_callback_node = ScanCallback()
+    scan_callback_node.velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
+    scan_callback_node.cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
     
     try:
         while rclpy.ok():
+            # Add a print statement for debugging
+            print("Spinning Once")
             rclpy.spin_once(rosNode, timeout_sec=0.1)
     except KeyboardInterrupt:
         pass
