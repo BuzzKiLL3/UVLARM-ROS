@@ -43,7 +43,7 @@ def scan_callback(scanMsg):
         
     if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
         print("go Left")
-        velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.1 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.15 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.linear.x = 0.0
     
     elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
