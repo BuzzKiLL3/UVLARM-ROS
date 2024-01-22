@@ -54,7 +54,7 @@ def scan_callback(scanMsg):
         target_angular_velocity = 0.05 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.angular.z = 0.9 * velo.angular.z + 0.1 * target_angular_velocity
 
-    max_angular_velocity = 0.9  # Adjust as needed
+    max_angular_velocity = 2.9  # Adjust as needed
     velo.angular.z = max(-max_angular_velocity, min(max_angular_velocity, velo.angular.z))
 
     print(velo.linear.x)
