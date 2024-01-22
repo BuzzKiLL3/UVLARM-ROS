@@ -14,6 +14,11 @@ launch:
     exec: "tuto_vision7.py"
     name: "vision"
 
+- node:
+    pkg: "uvlarm-gally"
+    exec: "tuto_vision.py"
+    name: "vision"
+
 # - node:
 #     pkg: "slam_toolbox"
 #     exec: "online_async_launch.py"

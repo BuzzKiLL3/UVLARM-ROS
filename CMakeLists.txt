@@ -36,6 +36,7 @@ install(DIRECTORY launch
 # Python scripts
 install( PROGRAMS scripts/move4.py DESTINATION lib/${PROJECT_NAME})
 install( PROGRAMS scripts/tuto_vision7.py DESTINATION lib/${PROJECT_NAME})
+install( PROGRAMS scripts/tuto_vision.py DESTINATION lib/${PROJECT_NAME})
 install( PROGRAMS scripts/scan_echo1.py DESTINATION lib/${PROJECT_NAME})
 install( PROGRAMS scripts/scan_echo.py DESTINATION lib/${PROJECT_NAME})
 

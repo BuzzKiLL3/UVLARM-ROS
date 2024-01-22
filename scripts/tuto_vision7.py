@@ -1,145 +1,63 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import rclpy
+from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Pose
 import cv2 as cv
 import numpy as np
 import pyrealsense2 as rs
 import math
 
-def main():
-    rclpy.init()
-    node = rclpy.create_node('realsense_image_publisher')
-    image_publisher = node.create_publisher(Image, 'camera/color/image_raw', 10)
-    bridge = CvBridge()
+class ObjectDetectionNode(Node):
+    def __init__(self):
+        super().__init__('object_detection_node')
+        self.face_cascade = cv.CascadeClassifier(cv.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        self.bridge = CvBridge()
+        self.marker_pub = self.create_publisher(Marker, 'object_marker', 10)
+        self.image_sub = self.create_subscription(Image, 'image', self.image_callback, 10)
 
-    # RealSense setup
-    pipeline = rs.pipeline()
-    config = rs.config()
-    colorizer = rs.colorizer()
+    def image_callback(self, msg):
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 
-    # FPS set to 30
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        # Convert the frame to grayscale
+        gray = cv.cvtColor(cv_image, cv.COLOR_BGR2GRAY)
 
-    pipeline.start(config)
+        # Detect faces in the frame
+        faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
 
-    align_to = rs.stream.depth
-    align = rs.align(align_to)
+        # Publish a marker if a face is detected
+        if len(faces) > 0:
+            x, y, w, h = faces[0]
+            face_pose = Pose()
+            face_pose.position.x = x + w/2
+            face_pose.position.y = y + h/2
+            face_pose.position.z = 0
 
-    color_info = (0, 0, 255)
-    rayon = 10
+            marker = Marker()
+            marker.header.frame_id = "camera_link"
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose = face_pose
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
 
-    # Template matching setup
-    img_rgb_template = cv.imread('car.png')
-    img_gray_template = cv.cvtColor(img_rgb_template, cv.COLOR_BGR2GRAY)
-    template = cv.imread('template.png', 0)
-    w, h = template.shape[::-1]
-    threshold_template = 0.3
+            self.marker_pub.publish(marker)
+            self.get_logger().info("Object detected!")
 
-    # Segmentation parameters using HSV color space
-    color = 60
-    lo = np.array([color - 15, 50, 50])
-    hi = np.array([color + 6, 255, 255])
-
-    # Flag to check if the template is detected
-    object_detected = False
-
-    # Distance threshold for object detection (increased distance)
-    distance_threshold = 1.0  # Adjust as needed
-
-    # Creating morphological kernel
-    kernel = np.ones((3, 3), np.uint8)
-
-    try:
-        while rclpy.ok():
-            # RealSense frames
-            frames = pipeline.wait_for_frames()
-            aligned_frames = align.process(frames)
-            depth_frame = aligned_frames.get_depth_frame()
-            aligned_color_frame = aligned_frames.get_color_frame()
-
-            if not depth_frame or not aligned_color_frame:
-                continue
-
-            # Colorized depth map
-            colorized_depth = colorizer.colorize(depth_frame)
-            depth_colormap = np.asanyarray(colorized_depth.get_data())
-
-            # Set background to black
-            depth_colormap[depth_colormap == 0] = 0
-
-            color_intrin = aligned_color_frame.profile.as_video_stream_profile().intrinsics
-            color_image = np.asanyarray(aligned_color_frame.get_data())
-
-            depth_colormap_dim = depth_colormap.shape
-            color_colormap_dim = color_image.shape
-
-            # Use pixel value of depth-aligned color image to get 3D axes
-            x, y = int(color_colormap_dim[1] / 2), int(color_colormap_dim[0] / 2)
-            depth = depth_frame.get_distance(x, y)
-            dx, dy, dz = rs.rs2_deproject_pixel_to_point(color_intrin, [x, y], depth)
-            distance = math.sqrt(((dx) ** 2) + ((dy) ** 2) + ((dz) ** 2))
-
-            # Check if the object is within the specified distance
-            if distance < distance_threshold:
-                # Convert color image to HSV
-                hsv_image = cv.cvtColor(color_image, cv.COLOR_BGR2HSV)
-
-                # Segmentation in HSV color space
-                mask = cv.inRange(hsv_image, lo, hi)
-                mask = cv.erode(mask, kernel, iterations=1)
-                mask = cv.dilate(mask, kernel, iterations=1)
-                image_segmented = cv.bitwise_and(color_image, color_image, mask=mask)
-
-                # Template matching with segmented image
-                img_gray_segmented = cv.cvtColor(image_segmented, cv.COLOR_BGR2GRAY)
-                res = cv.matchTemplate(img_gray_segmented, template, cv.TM_CCOEFF_NORMED)
-                loc = np.where(res >= threshold_template)
-
-                # Reset the object_detected flag
-                object_detected = False
-
-                for pt in zip(*loc[::-1]):
-                    cv.rectangle(color_image, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-                    object_detected = True
-
-                # Show images
-                images = np.hstack((color_image, depth_colormap, image_segmented))
-
-                cv.circle(images, (int(x), int(y)), int(rayon), color_info, 2)
-                cv.circle(images, (int(x + color_colormap_dim[1]), int(y)), int(rayon), color_info, 2)
-
-                cv.putText(images, "D=" + str(round(distance, 2)), (int(x) + 10, int(y) - 10),
-                            cv.FONT_HERSHEY_DUPLEX, 1, color_info, 1,                            cv.LINE_AA)
-                cv.putText(images, "D=" + str(round(distance, 2)), (int(x + color_colormap_dim[1]) + 10, int(y) - 10),
-                            cv.FONT_HERSHEY_DUPLEX, 1, color_info, 1, cv.LINE_AA)
-
-                # Show images
-                cv.imshow('RealSense', images)
-                cv.waitKey(1)
-
-                # Convert the color image to ROS Image message
-                ros_image = bridge.cv2_to_imgmsg(color_image, encoding="bgr8")
-                ros_image.header.stamp = node.get_clock().now().to_msg()
-
-                # Publish the image to the topic
-                image_publisher.publish(ros_image)
-
-                # Print object detection status in real-time
-                if object_detected:
-                    print("Object detected!")
-                else:
-                    print("Object not detected.")
-
-    except KeyboardInterrupt:
-        pass
-    finally:
-        pipeline.stop()
-        node.destroy_node()
-        rclpy.shutdown()
+def main(args=None):
+    rclpy.init(args=args)
+    object_detection_node = ObjectDetectionNode()
+    rclpy.spin(object_detection_node)
+    object_detection_node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
-
