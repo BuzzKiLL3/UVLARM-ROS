@@ -6,7 +6,6 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped, Point
 from visualization_msgs.msg import Marker
-from nav_msgs.msg import Path
 import numpy as np
 import pyrealsense2 as rs
 import math
@@ -55,10 +54,6 @@ class ObjectDetectionNode(Node):
         self.pose_pub = self.create_publisher(PoseStamped, 'object_pose', 10)
         # Marker publisher
         self.marker_pub = self.create_publisher(Marker, 'object_marker', 10)
-        # Path publisher
-        self.path_pub = self.create_publisher(Path, 'robot_path', 10)
-        self.robot_path = Path()
-        self.visited_locations = set()
 
         # Camera info subscriber
         self.camera_info_sub = self.create_subscription(
@@ -138,9 +133,6 @@ class ObjectDetectionNode(Node):
 
                 depth_colormap_dim = depth_colormap.shape
                 color_colormap_dim = color_image.shape
-
-                # ... (unchanged)
-
                 x, y = int(color_colormap_dim[1] / 2), int(color_colormap_dim[0] / 2)
                 depth = depth_frame.get_distance(x, y)
                 dx, dy, dz = rs.rs2_deproject_pixel_to_point(color_intrin, [x, y], depth)
@@ -181,7 +173,7 @@ class ObjectDetectionNode(Node):
                                 marker_msg = Marker()
                                 marker_msg.header = pose_msg.header
                                 marker_msg.ns = "object_marker"
-                                marker_msg.id = len(self.robot_path.poses)  # Different ID for each detection
+                                marker_msg.id = 0  # Same ID for each detection
                                 marker_msg.type = Marker.SPHERE
                                 marker_msg.action = Marker.ADD
                                 marker_msg.pose = pose_msg.pose
@@ -194,10 +186,6 @@ class ObjectDetectionNode(Node):
                                 marker_msg.color.b = 1.0  # Blue color
 
                                 self.marker_pub.publish(marker_msg)
-
-                                pose_msg.header.stamp = self.get_clock().now().to_msg()
-                                self.robot_path.poses.append(pose_msg)
-                                self.path_pub.publish(self.robot_path)
 
                                 self.visited_locations.add((x_base, y_base, z_base))
                                 # Reset the flag after publishing the marker
