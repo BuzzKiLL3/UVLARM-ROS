@@ -4,6 +4,34 @@ launch:
     pkg: "rviz2"
     exec: "rviz2"
     name: "rviz2"
-    
+
+- node:
+    pkg: "uvlarm-gally"
+    exec: "scan_echo1.py"
+    name: "laserscan"
+- node:
+    pkg: "uvlarm-gally"
+    exec: "marker.py"
+    name: "vision"
+
+- node:
+    pkg: "uvlarm-gally"
+    exec: "tuto_vision8.py"
+    name: "vision"
+
+# - node:
+#     pkg: "slam_toolbox"
+#     exec: "online_async_launch.py"
+#     name: "slam_toolbox_node"
+
 - executable:
-    cmd: gnome-terminal --tab -e 'ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=/multi/cmd_teleop'
+    cmd: ros2 launch slam_toolbox online_async_launch.py use_sim_time:=False
+
+# - executable:
+#     cmd: ros2 launch nav2_bringup navigation_launch.py
+
+- executable:
+   cmd: ros2 run nav2_map_server map_saver_cli -f ~/map
+    
+# - executable:
+#     cmd: gnome-terminal --tab -e 'ros2 run teleop_twist_keyboard teleop_twist_keyboard cmd_vel:=/multi/cmd_teleop'

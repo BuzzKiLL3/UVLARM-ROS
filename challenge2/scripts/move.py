@@ -17,26 +17,22 @@ rosNode = None
 def scan_callback(scanMsg):
     global rosNode
     angle = scanMsg.angle_min + math.pi/2
-    #obstacles_left = False
-    #obstacles_right = False
     obstacles = []
     cmd_debug_points_left = []
     cmd_debug_points_right = []
-    #obstacles_right = False
-    #obstacles_left = False
 
     for aDistance in scanMsg.ranges:
-        if 0.1 < aDistance < 5.0:
+        if 0.15 < aDistance < 3.0:
             aPoint = [
                 math.cos(angle) * aDistance,
                 math.sin(angle) * aDistance,
                 0.0
             ]
             obstacles.append(aPoint)
-            if (0.01 < aPoint[0] < 0.2 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3 ) :
+            if (0.05 < aPoint[0] < 0.02 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3 ) :
                 obstacles_right = True
                 cmd_debug_points_right.append(aPoint)
-            if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7)or(-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3 ):
+            if (-0.05 < aPoint[0] < -0.02 and -0.3 < aPoint[1] < -0.7)or(-0.01 < aPoint[0] < -0.1 and -0.1 < aPoint[1] < -0.3 ):
                 obstacles_left = True
                 cmd_debug_points_left.append(aPoint)
         angle += scanMsg.angle_increment
@@ -45,14 +41,14 @@ def scan_callback(scanMsg):
 
     
         
-    if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
+    if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 10:
         print("go Left")
-        velo.angular.z = 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.13 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.linear.x = 0.0
     
     elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
         print("go right")
-        velo.angular.z = 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.13 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.01 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.015 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
         velo.linear.x = 0.0
 
     else:
@@ -60,7 +56,7 @@ def scan_callback(scanMsg):
         if speed < 0:
             speed = 0.0
         velo.linear.x = speed
-        velo.angular.z = 0.2 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
 
     print(velo.linear.x)
     print(velo.angular.z)
@@ -77,7 +73,7 @@ if __name__ == '__main__':
     print("move move move")
     rclpy.init()
     rosNode = Node('PC_Publisher')
-    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
+    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav' , 10)
     cloud_publisher = rosNode.create_publisher(pc2.PointCloud2,'laser_link',10)
     rosNode.create_subscription( LaserScan, 'scan', scan_callback, 10)
     
