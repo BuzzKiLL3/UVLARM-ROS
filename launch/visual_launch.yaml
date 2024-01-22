@@ -16,7 +16,7 @@ launch:
 
 - node:
     pkg: "uvlarm-gally"
-    exec: "tuto_vision.py"
+    exec: "tuto_vision8.py"
     name: "vision"
 
 # - node:
