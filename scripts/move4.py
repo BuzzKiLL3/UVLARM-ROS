@@ -2,43 +2,79 @@
 
 import rclpy
 from rclpy.node import Node
-from kobuki_ros_interfaces.msg import WheelDropEvent
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Point32, Twist
+import sensor_msgs_py.point_cloud2 as pc2
+from std_msgs.msg import Header
+import time
+import math
 
-class LiftDetectionNode(Node):
-    def __init__(self):
-        super().__init__('lift_detection_node')
-        self.left_wheel_dropped = False
-        self.right_wheel_dropped = False
-        self.create_subscription(WheelDropEvent, 'event/wheel_drop', self.wheel_callback, 10)
-        self.create_timer(1.0, self.print_lift_status)  # Print status every 1 second
+rosNode = None
 
-    def wheel_callback(self, wheel_msg):
-        # Check if left wheel is dropped
-        self.left_wheel_dropped = wheel_msg.wheel == WheelDropEvent.WHEEL_LEFT
+def scan_callback(scanMsg):
+    global rosNode
+    angle = scanMsg.angle_min + math.pi/2
+    obstacles = []
+    cmd_debug_points_left = []
+    cmd_debug_points_right = []
 
-        # Check if right wheel is dropped
-        self.right_wheel_dropped = wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT
+    for aDistance in scanMsg.ranges:
+        if 0.1 < aDistance < 3.0:
+            aPoint = [
+                math.cos(angle) * aDistance,
+                math.sin(angle) * aDistance,
+                0.0
+            ]
+            obstacles.append(aPoint)
+            if (0.01 < aPoint[0] < 0.2 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3):
+                obstacles_right = True
+                cmd_debug_points_right.append(aPoint)
+            if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7) or (-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3):
+                obstacles_left = True
+                cmd_debug_points_left.append(aPoint)
+        angle += scanMsg.angle_increment
 
-    def print_lift_status(self):
-        if self.left_wheel_dropped and self.right_wheel_dropped:
-            print("Robot is lifted!")
-        elif not self.left_wheel_dropped and not self.right_wheel_dropped:
-            print("Both wheels are on the floor.")
-        else:
-            print("One wheel is on the floor, and the other is lifted.")
+    velo = Twist()
 
-def main():
-    print("Lift Detection Node")
-    rclpy.init()
-    node = LiftDetectionNode()
+    if (len(cmd_debug_points_right) - len(cmd_debug_points_left)) > 15:
+        print("go Left")
+        velo.angular.z = 0.1 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.linear.x = 0.1  # Set to a small positive value for smooth turning
+    
+    elif (len(cmd_debug_points_left) - len(cmd_debug_points_right)) > 15:
+        print("go right")
+        velo.angular.z = 0.09 * (len(cmd_debug_points_right) + len(cmd_debug_points_left)) + 0.09 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.linear.x = 0.1  # Set to a small positive value for smooth turning
 
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
+    else:
+        speed = 0.3 - 0.05 * (len(cmd_debug_points_right) + len(cmd_debug_points_left))
+        if speed < 0:
+            speed = 0.0
+        velo.linear.x = speed
+        target_angular_velocity = 0.05 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
+        velo.angular.z = 0.9 * velo.angular.z + 0.1 * target_angular_velocity
 
-    node.destroy_node()
-    rclpy.shutdown()
+    max_angular_velocity = 0.9  # Adjust as needed
+    velo.angular.z = max(-max_angular_velocity, min(max_angular_velocity, velo.angular.z))
+
+    print(velo.linear.x)
+    print(velo.angular.z)
+
+    velocity_publisher.publish(velo)
+    cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
+    cloud_publisher.publish(cloudPoints)
 
 if __name__ == '__main__':
-    main()
+    print("move move move")
+    rclpy.init()
+    rosNode = Node('PC_Publisher')
+    velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
+    cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
+    rosNode.create_subscription(LaserScan, 'scan', scan_callback, 10)
+
+    while True:
+        rclpy.spin_once(rosNode, timeout_sec=0.1)
+    
+    # Clean up
+    rosNode.destroy_node()
+    rclpy.shutdown()

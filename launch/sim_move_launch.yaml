@@ -19,7 +19,7 @@ launch:
 
 - node:
     pkg: "uvlarm-gally"
-    exec: "move.py"
+    exec: "move4.py"
     name: "ranmove"
 
 - node:
