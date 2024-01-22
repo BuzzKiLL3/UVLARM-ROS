@@ -112,14 +112,11 @@ def main():
     except KeyboardInterrupt:
         pass
 
-<<<<<<< HEAD
     rosNode.destroy_node()
     rclpy.shutdown()
-=======
     scan_callback_node.destroy_node()
     rclpy.shutdown()
 
 
 if __name__ == '__main__':
     main()
->>>>>>> refs/remotes/origin/main
