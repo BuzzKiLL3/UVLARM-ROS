@@ -4,6 +4,13 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
+<<<<<<< HEAD
+=======
+import sensor_msgs_py.point_cloud2 as pc2
+from std_msgs.msg import Header
+import math
+
+>>>>>>> refs/remotes/origin/main
 from kobuki_ros_interfaces.msg import WheelDropEvent
 import sensor_msgs_py.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2, PointField
@@ -11,11 +18,22 @@ from std_msgs.msg import Header
 import time
 import math
 
+<<<<<<< HEAD
 rosNode = None
 
 class RobotController(Node):
     def __init__(self):
         super().__init__('robot_controller')
+=======
+class ScanCallback(Node):
+    def __init__(self):
+        super().__init__('scan_callback_node')
+        
+        self.obstacles_left = False
+        self.obstacles_right = False
+        self.velocity_publisher = None
+        self.cloud_publisher = None
+>>>>>>> refs/remotes/origin/main
         self.leftWheelDropped = False
         self.rightWheelDropped = False
         self.cmd_vel_publisher = self.create_publisher(Twist, '/multi/cmd_nav', 10)
@@ -30,8 +48,12 @@ class RobotController(Node):
             self.rightWheelDropped = True if wheel_msg.wheel == WheelDropEvent.WHEEL_RIGHT else False
 
     def scan_callback(self, scan_msg):
+<<<<<<< HEAD
         global rosNode
         angle = scan_msg.angle_min + math.pi / 2
+=======
+        angle = scan_msg.angle_min + math.pi/2
+>>>>>>> refs/remotes/origin/main
         obstacles = []
         cmd_debug_points_left = []
         cmd_debug_points_right = []
@@ -44,6 +66,9 @@ class RobotController(Node):
             self.cmd_vel_publisher.publish(velo)
             return
 
+        # Add print statements for debugging
+        print("Laser Scan Callback Triggered")
+
         for aDistance in scan_msg.ranges:
             if 0.1 < aDistance < 3.0:
                 aPoint = [
@@ -53,8 +78,15 @@ class RobotController(Node):
                 ]
                 obstacles.append(aPoint)
                 if (0.01 < aPoint[0] < 0.2 and 0.3 < aPoint[1] < 0.7) or (0.01 < aPoint[0] < 0.1 and 0.1 < aPoint[1] < 0.3):
+<<<<<<< HEAD
                     cmd_debug_points_right.append(aPoint)
                 if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7) or (-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3):
+=======
+                    self.obstacles_right = True
+                    cmd_debug_points_right.append(aPoint)
+                if (-0.2 < aPoint[0] < -0.01 and 0.3 < aPoint[1] < 0.7) or (-0.1 < aPoint[0] < -0.01 and 0.1 < aPoint[1] < 0.3):
+                    self.obstacles_left = True
+>>>>>>> refs/remotes/origin/main
                     cmd_debug_points_left.append(aPoint)
             angle += scan_msg.angle_increment
 
@@ -79,22 +111,39 @@ class RobotController(Node):
             velo.linear.x = speed
             velo.angular.z = 0.01 * (len(cmd_debug_points_right) - len(cmd_debug_points_left))
 
-        print(velo.linear.x)
-        print(velo.angular.z)
+        print("Linear Velocity:", velo.linear.x)
+        print("Angular Velocity:", velo.angular.z)
 
         self.cmd_vel_publisher.publish(velo)
         cloudPoints = pc2.create_cloud_xyz32(Header(frame_id='laser_link'), obstacles)
+<<<<<<< HEAD
         cloud_publisher = rosNode.create_publisher(PointCloud2, 'laser_link', 10)
         cloud_publisher.publish(cloudPoints)
+=======
+        self.cloud_publisher.publish(cloudPoints)
+>>>>>>> refs/remotes/origin/main
 
 def main():
     global rosNode
     print("move move move")
     rclpy.init()
+<<<<<<< HEAD
     rosNode = RobotController()
     
     try:
         rclpy.spin(rosNode)
+=======
+    rosNode = Node('PC_Publisher')
+    scan_callback_node = ScanCallback()
+    scan_callback_node.velocity_publisher = rosNode.create_publisher(Twist, '/multi/cmd_nav', 10)
+    scan_callback_node.cloud_publisher = rosNode.create_publisher(pc2.PointCloud2, 'laser_link', 10)
+    
+    try:
+        while rclpy.ok():
+            # Add a print statement for debugging
+            print("Spinning Once")
+            rclpy.spin_once(rosNode, timeout_sec=0.1)
+>>>>>>> refs/remotes/origin/main
     except KeyboardInterrupt:
         pass
 
