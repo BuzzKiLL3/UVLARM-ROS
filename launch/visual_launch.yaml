@@ -11,7 +11,7 @@ launch:
     name: "laserscan"
 - node:
     pkg: "uvlarm-gally"
-    exec: "tuto_vision3.py"
+    exec: "tuto_vision7.py"
     name: "vision"
 
 # - node:
