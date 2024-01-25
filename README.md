@@ -12,7 +12,7 @@ Om Badagi - Carlos Becerril
 As per the challenge 2: 
 we have 1 main Launch file in the directory Challenge 2 and all the files associated with it.
 
-*LAUNCH : Challlenge2>Launch>sim_move_launch.yaml 
+*LAUNCH : Challlenge2/Launch/sim_move_launch.yaml 
 This launch file has:
 Visual Launch 
 Rviz2
